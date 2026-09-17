@@ -282,6 +282,14 @@
   transform: translateY(0);
 }
 
+.btn-auth-submit:disabled,
+.btn-auth-google:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none !important;
+  box-shadow: none;
+}
+
 .dark .btn-auth-submit {
   background-color: #ffffff !important;
   color: #0f172a !important;

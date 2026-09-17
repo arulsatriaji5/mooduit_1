@@ -22,6 +22,7 @@ import {
   Volume2,
   VolumeX,
   Gift,
+  Loader2,
 } from "lucide-react";
 import { useThemeLanguage } from "../context/ThemeLanguageContext";
 import { fetchUserStreak, restoreStreak, fetchAiStreakMotivation } from "../utils/api";
@@ -563,6 +564,7 @@ export default function Dashboard({
   const [isNyicilModalOpen, setIsNyicilModalOpen] = React.useState(false);
   const [selectedTargetForNyicil, setSelectedTargetForNyicil] = React.useState<any>(null);
   const [nyicilNominal, setNyicilNominal] = React.useState("");
+  const [isSavingInstallment, setIsSavingInstallment] = React.useState(false);
 
   const [localTransactions, setLocalTransactions] = React.useState<any[]>([]);
   const transactions =
@@ -629,6 +631,7 @@ export default function Dashboard({
   };
 
   const handleSetorNyicil = async () => {
+    if (isSavingInstallment) return;
     if (!selectedTargetForNyicil) return;
     const cleanAmount = Number(nyicilNominal.replace(/\D/g, ""));
     const isId = language === "id";
@@ -679,6 +682,7 @@ export default function Dashboard({
       icon: "🎯"
     };
 
+    setIsSavingInstallment(true);
     try {
       if (propsSetTransactions && typeof propsSetTransactions === "function") {
         const { insertTransaction } = await import("../utils/api");
@@ -706,6 +710,8 @@ export default function Dashboard({
       console.error("Failed to insert nyicil transaction:", err);
       toast.error(isId ? "Cicilan gagal disimpan. Silakan coba lagi." : "The installment could not be saved. Please try again.");
       return;
+    } finally {
+      setIsSavingInstallment(false);
     }
 
     setIsNyicilModalOpen(false);
@@ -2495,12 +2501,12 @@ export default function Dashboard({
             className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3"
             role="presentation"
             onPointerDown={(event) => {
-              if (event.target === event.currentTarget) {
+              if (!isSavingInstallment && event.target === event.currentTarget) {
                 setIsNyicilModalOpen(false);
               }
             }}
             onClick={(event) => {
-              if (event.target === event.currentTarget) {
+              if (!isSavingInstallment && event.target === event.currentTarget) {
                 setIsNyicilModalOpen(false);
               }
             }}
@@ -2530,7 +2536,10 @@ export default function Dashboard({
                   className="border-0 bg-transparent d-flex align-items-center justify-content-center p-2"
                   style={{ color: darkMode ? "#ffffff" : "#112F58", borderRadius: "9999px" }}
                   aria-label={t("Tutup popup cicilan", "Close installment popup")}
-                  onClick={() => setIsNyicilModalOpen(false)}
+                  onClick={() => {
+                    if (!isSavingInstallment) setIsNyicilModalOpen(false);
+                  }}
+                  disabled={isSavingInstallment}
                 >
                   <X size={22} strokeWidth={2.5} />
                 </button>
@@ -2546,17 +2555,22 @@ export default function Dashboard({
                   placeholder="Contoh: 100.000"
                   value={nyicilNominal}
                   onChange={(e) => setNyicilNominal(formatInput(e.target.value))}
+                  disabled={isSavingInstallment}
                 />
               </div>
 
               <div className="d-flex justify-content-end">
                 <button
                   type="button"
-                  disabled={!nyicilNominal}
+                  disabled={!nyicilNominal || isSavingInstallment}
                   className="w-100 px-4 py-2.5 bg-[#112F58] text-white rounded-xl font-bold text-xs sm:text-sm hover:bg-[#1a447d] transition-all border-0 cursor-pointer disabled:opacity-50"
                   onClick={handleSetorNyicil}
+                  aria-busy={isSavingInstallment}
                 >
-                  {t("Simpan Cicilan", "Save Installment")}
+                  <span className="d-flex align-items-center justify-content-center gap-2">
+                    {isSavingInstallment && <Loader2 size={17} className="animate-spin" />}
+                    {isSavingInstallment ? t("Menyimpan cicilan...", "Saving installment...") : t("Simpan Cicilan", "Save Installment")}
+                  </span>
                 </button>
               </div>
             </motion.div>

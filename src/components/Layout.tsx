@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, List, Shield, Calculator, PieChart, Settings as SettingsIcon, LogOut, Plus, Camera, Keyboard, X, Scan } from 'lucide-react';
+import { Home, List, Shield, Calculator, PieChart, Settings as SettingsIcon, LogOut, Plus, Camera, Keyboard, X, Scan, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import Logo from './Logo';
 import { useThemeLanguage } from '../context/ThemeLanguageContext';
 import { insertTransaction } from '../utils/api';
@@ -25,6 +26,7 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   const [manualNominal, setManualNominal] = useState("");
   const [manualKategori, setManualKategori] = useState("Kebutuhan Pokok");
   const [manualCatatan, setManualCatatan] = useState("");
+  const [isSavingTransaction, setIsSavingTransaction] = useState(false);
 
   const kategoriPengeluaran = [
     { id: "Kebutuhan Pokok", icon: "🛒" },
@@ -62,6 +64,69 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
   const handleNominalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, "");
     setManualNominal(rawValue ? Number(rawValue).toLocaleString('id-ID') : "");
+  };
+
+  const handleSaveManualTransaction = async () => {
+    if (isSavingTransaction) return;
+
+    const nominal = Number(manualNominal.replace(/\D/g, ""));
+    if (!nominal || nominal <= 0) {
+      toast.error(t('Masukkan nominal transaksi yang valid.', 'Enter a valid transaction amount.'));
+      return;
+    }
+
+    const tempId = Date.now();
+    const transactionType = manualJenis;
+    const transactionCategory = manualKategori;
+    const newTransaction = {
+      id: tempId,
+      nominal,
+      catatan: manualCatatan || transactionCategory,
+      kategori: transactionCategory,
+      tanggal: manualTanggal,
+      jenis: transactionType,
+      icon: kategoriAktif.find(k => k.id === transactionCategory)?.icon || "🧾"
+    };
+    const userEmail = localStorage.getItem("userEmail") || "";
+
+    setIsSavingTransaction(true);
+    if (setTransactions) {
+      setTransactions(prev => [newTransaction, ...prev]);
+    }
+
+    try {
+      const inserted = await insertTransaction(newTransaction, userEmail);
+      if (setTransactions) {
+        setTransactions(prev => {
+          const index = prev.findIndex(transaction => String(transaction.id) === String(tempId));
+          if (index === -1) return prev;
+          const next = [...prev];
+          next[index] = inserted;
+          return next;
+        });
+      }
+
+      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
+        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
+          type: inserted.type || transactionType,
+          amount: inserted.amount || nominal,
+          category: inserted.category || transactionCategory
+        });
+      }
+
+      setIsManualModalOpen(false);
+      setManualNominal("");
+      setManualCatatan("");
+      onNavigate('dashboard');
+    } catch (error) {
+      console.error("Failed to insert manual transaction:", error);
+      if (setTransactions) {
+        setTransactions(prev => prev.filter(transaction => String(transaction.id) !== String(tempId)));
+      }
+      toast.error(t('Transaksi gagal disimpan. Silakan coba lagi.', 'The transaction could not be saved. Please try again.'));
+    } finally {
+      setIsSavingTransaction(false);
+    }
   };
 
   const navItems = [
@@ -331,7 +396,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-[#112F58]/20"
-              onClick={() => setIsManualModalOpen(false)}
+              onClick={() => {
+                if (!isSavingTransaction) setIsManualModalOpen(false);
+              }}
             />
             
             <motion.div 
@@ -345,7 +412,10 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               <div className="p-4 sm:p-6 pb-3 flex justify-between items-center border-b border-gray-100">
                 <h2 className="text-[#112F58] text-xl sm:text-2xl font-extrabold tracking-wide m-0">{t('Tambah Transaksi', 'Add Transaction')}</h2>
                 <button 
-                  onClick={() => setIsManualModalOpen(false)} 
+                  onClick={() => {
+                    if (!isSavingTransaction) setIsManualModalOpen(false);
+                  }}
+                  disabled={isSavingTransaction}
                   className="bg-gray-50 p-1.5 sm:p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-all focus:outline-none border-0 cursor-pointer"
                 >
                   <X size={18} />
@@ -458,7 +528,9 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
                       type="text" 
                       value={manualCatatan} 
                       onChange={(e) => setManualCatatan(e.target.value)} 
-                      placeholder={t('Misal: Makan siang...', 'E.g., Lunch...')} 
+                      placeholder={manualJenis === 'pemasukan'
+                        ? t('Misal: Gaji bulan ini...', 'E.g., Monthly salary...')
+                        : t('Misal: Makan siang...', 'E.g., Lunch...')} 
                       className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-400" 
                     />
                   </div>
@@ -469,67 +541,16 @@ export default function Layout({ children, activePage, onNavigate, pendingData, 
               <div className="p-4 sm:p-6 pt-1 sm:pt-2 bg-white">
                 <button 
                   className="w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#112F58] text-white font-bold text-base sm:text-lg shadow-lg hover:bg-[#0c2240] active:scale-95 transition-all flex items-center justify-center gap-2 border-0 cursor-pointer"
-                  onClick={async () => {
-                    const tempId = Date.now();
-                    const newTransaction = {
-                      id: tempId,
-                      nominal: Number(manualNominal.replace(/\D/g, "")),
-                      catatan: manualCatatan || manualKategori,
-                      kategori: manualKategori,
-                      tanggal: manualTanggal,
-                      jenis: manualJenis,
-                      icon: kategoriAktif.find(k => k.id === manualKategori)?.icon || "🧾"
-                    };
-
-                    // Optimistic update
-                    const user_email = localStorage.getItem("userEmail") || "";
-                    if (setTransactions) {
-                      setTransactions(prev => [newTransaction, ...prev]);
-                    }
-
-                    setIsManualModalOpen(false);
-                    setManualNominal("");
-                    setManualCatatan("");
-                    onNavigate('dashboard');
-                    
-                    // Database insertion
-                    try {
-                      const inserted = await insertTransaction(newTransaction, user_email);
-                      if (setTransactions) {
-                        setTransactions(prev => {
-                          const index = prev.findIndex(t => String(t.id) === String(tempId));
-                          if (index !== -1) {
-                            const next = [...prev];
-                            next[index] = inserted;
-                            return next;
-                          }
-                          return prev;
-                        });
-                      }
-                      
-                      // Trigger success modal
-                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                        (window as any).triggerTransactionSuccess(inserted.currentStreak, inserted.streakIncreasedToday, {
-                          type: inserted.type || manualJenis,
-                          amount: inserted.amount || Number(manualNominal.replace(/\D/g, "")),
-                          category: inserted.category || manualKategori
-                        });
-                      }
-                    } catch (err) {
-                      console.error("Failed to insert transaction in background:", err);
-                      // Fallback trigger in case of connection issue
-                      if (typeof window !== "undefined" && (window as any).triggerTransactionSuccess) {
-                        (window as any).triggerTransactionSuccess(undefined, undefined, {
-                          type: manualJenis,
-                          amount: Number(manualNominal.replace(/\D/g, "")),
-                          category: manualKategori
-                        });
-                      }
-                    }
-                  }}
+                  onClick={handleSaveManualTransaction}
+                  disabled={isSavingTransaction || !manualNominal}
+                  aria-busy={isSavingTransaction}
                 >
-                  <Plus size={24} strokeWidth={3} />
-                  <span>{t('Simpan Transaksi', 'Save Transaction')}</span>
+                  {isSavingTransaction ? (
+                    <Loader2 size={22} className="animate-spin" />
+                  ) : (
+                    <Plus size={24} strokeWidth={3} />
+                  )}
+                  <span>{isSavingTransaction ? t('Menyimpan transaksi...', 'Saving transaction...') : t('Simpan Transaksi', 'Save Transaction')}</span>
                 </button>
               </div>
             </motion.div>

@@ -19,6 +19,11 @@ interface TransactionsProps {
   setTransactions?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
+const getCurrentMonthKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
 export default function Transactions({ transactions: propsTransactions, setTransactions: propsSetTransactions }: TransactionsProps = {}) {
   const { t, language } = useThemeLanguage();
   const [localTransactions, setLocalTransactions] = useState<any[]>([]);
@@ -28,7 +33,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterJenis, setFilterJenis] = useState('semua');
-  const [filterBulan, setFilterBulan] = useState('semua'); 
+  const [filterBulan, setFilterBulan] = useState(getCurrentMonthKey); 
   
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -235,6 +240,7 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
   const getMonthName = (monthString: string) => {
     if (monthString === 'semua') return t('Semua Waktu', 'All Time');
+    if (monthString === getCurrentMonthKey()) return t('Bulan Ini', 'This Month');
     const [y, m] = monthString.split('-');
     const blnName = language === 'id' 
       ? ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
@@ -627,7 +633,9 @@ export default function Transactions({ transactions: propsTransactions, setTrans
                       type="text" 
                       value={editCatatan} 
                       onChange={(e) => setEditCatatan(e.target.value)} 
-                      placeholder={t('Misal: Makan siang...', 'E.g., Lunch...')} 
+                      placeholder={editJenis === 'pemasukan'
+                        ? t('Misal: Gaji bulan ini...', 'E.g., Monthly salary...')
+                        : t('Misal: Makan siang...', 'E.g., Lunch...')} 
                       className="w-full bg-gray-50 text-gray-700 border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 text-xs sm:text-sm focus:border-[#112F58] focus:bg-white focus:outline-none transition-all placeholder-gray-400" 
                     />
                   </div>

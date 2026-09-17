@@ -388,11 +388,11 @@ export default function Settings({ onLogout }: SettingsProps) {
                         <button
                           type="button"
                           onClick={() => setIsLangOpen(!isLangOpen)}
-                          className="flex items-center justify-end gap-2 bg-transparent border-0 text-[#112F58] font-extrabold cursor-pointer p-0 m-0 outline-none shadow-none text-xs sm:text-sm"
+                          className="flex items-center justify-end gap-2 bg-transparent border-0 !text-[#112F58] dark:!text-slate-100 font-extrabold cursor-pointer p-0 m-0 outline-none shadow-none text-xs sm:text-sm"
                           id="language_dropdown_button"
                         >
                           <span>{language === 'id' ? t("Bahasa Indonesia", "Indonesian") : t("Bahasa Inggris", "English")}</span>
-                          <ChevronDown size={16} className={`transition-transform duration-200 ${isLangOpen ? 'rotate-180 text-[#112F58]' : 'text-slate-400'}`} />
+                          <ChevronDown size={16} className={`transition-transform duration-200 ${isLangOpen ? 'rotate-180 text-[#112F58] dark:text-slate-100' : 'text-slate-400 dark:text-slate-300'}`} />
                         </button>
 
                         {isLangOpen && (
@@ -403,15 +403,15 @@ export default function Settings({ onLogout }: SettingsProps) {
                               onClick={() => setIsLangOpen(false)}
                             />
                             {/* Curved Pop-up Menu */}
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden z-50">
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-600 rounded-2xl shadow-xl overflow-hidden z-50">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setLanguage('id');
                                   setIsLangOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-3 text-sm font-bold text-[#112F58] transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
-                                  language === 'id' ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                                className={`w-full text-left px-4 py-3 text-sm font-bold !text-[#112F58] dark:!text-slate-100 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-600 last:border-0 ${
+                                  language === 'id' ? 'bg-slate-100 dark:bg-slate-700' : 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700'
                                 }`}
                               >
                                 {t("Bahasa Indonesia", "Indonesian")}
@@ -422,8 +422,8 @@ export default function Settings({ onLogout }: SettingsProps) {
                                   setLanguage('en');
                                   setIsLangOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-3 text-sm font-bold text-[#112F58] transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
-                                  language === 'en' ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
+                                className={`w-full text-left px-4 py-3 text-sm font-bold !text-[#112F58] dark:!text-slate-100 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-600 last:border-0 ${
+                                  language === 'en' ? 'bg-slate-100 dark:bg-slate-700' : 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700'
                                 }`}
                               >
                                 {t("Bahasa Inggris", "English")}

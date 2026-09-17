@@ -97,14 +97,15 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
   });
 
   const categoryStyles: { [key: string]: { color: string; bg: string; icon: string } } = {
-    "Kebutuhan Pokok": { color: '#112F58', bg: '#112F5815', icon: '🛒' },
+    "Kebutuhan Pokok": { color: '#4F76B8', bg: '#EAF0F8', icon: '🛒' },
     "Transportasi": { color: '#886E41', bg: '#886E4115', icon: '🚗' }, 
     "Hiburan": { color: '#C21C34', bg: '#C21C3415', icon: '🎬' }, 
     "Makan & Minum": { color: '#CA8A04', bg: '#CA8A0415', icon: '🍜' }, 
     "Kesehatan": { color: '#059669', bg: '#05966915', icon: '💊' }, 
     "Pendidikan": { color: '#1D4ED8', bg: '#1D4ED815', icon: '📚' }, 
     "Tagihan": { color: '#6D28D9', bg: '#6D28D915', icon: '📄' }, 
-    "Belanja": { color: '#BE185D', bg: '#BE185D15', icon: '👕' }, 
+    "Belanja": { color: '#BE185D', bg: '#BE185D15', icon: '👕' },
+    "Target Impian": { color: '#7563B8', bg: '#F0ECF8', icon: '🎯' },
     "Lainnya": { color: '#4B5563', bg: '#4B556315', icon: '📦' },
   };
 
@@ -112,7 +113,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
     const value = totalPerKategori[catName];
     const percentNum = totalSemua > 0 ? (value / totalSemua) * 100 : 0;
     const percent = percentNum.toFixed(0) + '%';
-    const style = categoryStyles[catName] || { color: '#1E293B', bg: '#1E293B15', icon: '🧾' };
+    const style = categoryStyles[catName] || { color: '#0F766E', bg: '#0F766E18', icon: '🧾' };
     return {
       name: catName,
       value: value,
@@ -143,7 +144,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       {
         data: categoriesList.map(c => c.value),
         backgroundColor: categoriesList.map(c => c.color),
-        borderColor: darkMode ? '#1e293b' : '#ffffff',
+        borderColor: '#f8fafc',
         borderWidth: 2,
         hoverOffset: 8,
         cutout: '75%'
@@ -257,7 +258,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
     const value = totalPemasukanPerKategori[catName];
     const percentNum = totalPemasukanSemua > 0 ? (value / totalPemasukanSemua) * 100 : 0;
     const percent = percentNum.toFixed(0) + '%';
-    const style = incomeCategoryStyles[catName] || { color: '#1E293B', bg: '#1E293B15', icon: '🧾' };
+    const style = incomeCategoryStyles[catName] || { color: '#0F766E', bg: '#0F766E18', icon: '🧾' };
     return {
       name: catName,
       value: value,
@@ -285,7 +286,7 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
       {
         data: incomeCategoriesList.map(c => c.value),
         backgroundColor: incomeCategoriesList.map(c => c.color),
-        borderColor: darkMode ? '#1e293b' : '#ffffff',
+        borderColor: '#f8fafc',
         borderWidth: 2,
         hoverOffset: 8,
         cutout: '75%'
@@ -596,11 +597,12 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
             <>
               {/* KARTU GRAFIK RINCIAN */}
               <motion.div 
-                className="bg-white dark:bg-slate-800 rounded-[20px] p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700"
+                className="bg-white rounded-[20px] p-4 sm:p-6 shadow-sm border border-slate-200"
+                style={{ backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <div className="analysis-card-heading d-flex justify-content-between align-items-start gap-3 mb-4 sm:mb-5 border-b border-gray-100 dark:border-slate-700 pb-3">
+                <div className="analysis-card-heading d-flex justify-content-between align-items-start gap-3 mb-4 sm:mb-5 border-b border-slate-200 pb-3">
                    <h2 
                      className="fw-extrabold font-bold text-lg sm:text-2xl mb-0 leading-tight min-w-0"
                      style={{ color: darkMode ? '#ffffff' : '#112F58' }}
@@ -657,19 +659,19 @@ export default function Analysis({ transactions: propsTransactions }: AnalysisPr
                                </span>
                                <span 
                                  className="text-xs sm:text-sm font-bold truncate max-w-[120px] sm:max-w-[180px]"
-                                 style={{ color: darkMode ? '#e2e8f0' : '#1e293b' }} 
+                                 style={{ color: '#1e293b' }} 
                                >
                                   {item.icon} {labelTranslations[item.name] || item.name}
                                 </span>
                               </div>
                               <span 
                                 className="text-xs sm:text-sm font-bold shrink-0"
-                                style={{ color: darkMode ? '#38bdf8' : '#112F58' }}
+                                style={{ color: item.color }}
                               >
                                 Rp {item.value.toLocaleString('id-ID')}
                               </span>
                             </div>
-                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div className="w-full bg-[#E4E8EF] h-1.5 rounded-full overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-500" style={{ width: item.percent, backgroundColor: item.color }}></div>
                             </div>
                           </div>
