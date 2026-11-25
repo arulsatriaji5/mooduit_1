@@ -576,17 +576,26 @@ export default function Transactions({ transactions: propsTransactions, setTrans
 
                 <div>
                   <label className="text-gray-500 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest mb-1 sm:mb-2 block px-1">{t('Jumlah Nominal', 'Total Nominal')}</label>
-                  <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden focus-within:border-[#112F58] focus-within:bg-white transition-all duration-300">
-                    <span className={`pl-4 sm:pl-5 text-xl sm:text-2xl font-bold ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`}>Rp</span>
+                  <div
+                    className="relative flex items-center gap-2 sm:gap-3 px-4 sm:px-5 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden focus-within:border-[#112F58] focus-within:bg-white transition-all duration-300"
+                    style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                  >
+                    <span
+                      className={`whitespace-nowrap shrink-0 inline-flex items-center leading-none text-xl sm:text-2xl font-bold select-none ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`}
+                      style={{ overflowWrap: 'normal', wordBreak: 'normal' }}
+                    >
+                      Rp
+                    </span>
                     <input 
                       type="text" 
+                      inputMode="numeric"
                       value={editNominal}
                       onChange={(e) => {
                         const cleanValue = e.target.value.replace(/\D/g, "");
                         setEditNominal(cleanValue ? Number(cleanValue).toLocaleString('id-ID') : "");
                       }}
                       placeholder="0"
-                      className={`w-full bg-transparent py-3 sm:py-5 pl-2 sm:pl-3 pr-4 sm:pr-5 text-2xl sm:text-4xl font-extrabold focus:outline-none placeholder-gray-300 ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`} 
+                      className={`min-w-0 flex-1 w-full bg-transparent py-3 sm:py-5 px-0 text-2xl sm:text-4xl font-extrabold leading-none focus:outline-none placeholder-gray-300 border-0 ${editJenis === "pengeluaran" ? "text-red-500" : "text-emerald-500"}`} 
                     />
                   </div>
                 </div>

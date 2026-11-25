@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronRight, 
@@ -23,12 +23,163 @@ interface LandingPageProps {
   onStart: (mode: 'login' | 'register') => void;
 }
 
+function useLandingCarousel(itemCount: number, intervalMs = 4000) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+  const isPausedRef = useRef(false);
+  const pauseUntilRef = useRef(0);
+  const isProgrammaticScrollRef = useRef(false);
+  const autoTimerRef = useRef<number | null>(null);
+  const programmaticTimerRef = useRef<number | null>(null);
+
+  const resetAutoScrollTimer = useCallback(() => {
+    if (autoTimerRef.current) {
+      window.clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    autoTimerRef.current = window.setInterval(() => {
+      const track = trackRef.current;
+      if (!track) return;
+      if (track.scrollWidth <= track.clientWidth + 4) return;
+      if (isPausedRef.current || Date.now() < pauseUntilRef.current) return;
+
+      const nextIndex = (activeIndexRef.current + 1) % itemCount;
+      const cards = Array.from(track.querySelectorAll('.landing-horizontal-card')) as HTMLElement[];
+      const targetCard = cards[nextIndex];
+      if (!targetCard) return;
+
+      const trackRect = track.getBoundingClientRect();
+      const cardRect = targetCard.getBoundingClientRect();
+      const paddingLeft = parseFloat(window.getComputedStyle(track).paddingLeft || '0') || 0;
+      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+      const targetLeft = Math.min(maxScroll, Math.max(0, cardRect.left - trackRect.left + track.scrollLeft - paddingLeft));
+
+      isProgrammaticScrollRef.current = true;
+      if (programmaticTimerRef.current) {
+        window.clearTimeout(programmaticTimerRef.current);
+      }
+      programmaticTimerRef.current = window.setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 650);
+
+      activeIndexRef.current = nextIndex;
+      setActiveIndex(nextIndex);
+      track.scrollTo({ left: targetLeft, behavior: 'smooth' });
+    }, intervalMs);
+  }, [itemCount, intervalMs]);
+
+  const scrollToIndex = useCallback((index: number, isUserAction = false) => {
+    const clampedIndex = ((index % itemCount) + itemCount) % itemCount;
+    const track = trackRef.current;
+    if (!track) return;
+
+    const cards = Array.from(track.querySelectorAll('.landing-horizontal-card')) as HTMLElement[];
+    const targetCard = cards[clampedIndex];
+    if (!targetCard) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const cardRect = targetCard.getBoundingClientRect();
+    const paddingLeft = parseFloat(window.getComputedStyle(track).paddingLeft || '0') || 0;
+    const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+    const targetLeft = Math.min(maxScroll, Math.max(0, cardRect.left - trackRect.left + track.scrollLeft - paddingLeft));
+
+    isProgrammaticScrollRef.current = true;
+    if (programmaticTimerRef.current) {
+      window.clearTimeout(programmaticTimerRef.current);
+    }
+    programmaticTimerRef.current = window.setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 650);
+
+    activeIndexRef.current = clampedIndex;
+    setActiveIndex(clampedIndex);
+
+    if (isUserAction) {
+      pauseUntilRef.current = Date.now() + intervalMs;
+      resetAutoScrollTimer();
+    }
+
+    track.scrollTo({ left: targetLeft, behavior: 'smooth' });
+  }, [itemCount, intervalMs, resetAutoScrollTimer]);
+
+  const handleScroll = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (track.scrollWidth <= track.clientWidth + 4) return;
+    if (isProgrammaticScrollRef.current) return;
+
+    pauseUntilRef.current = Date.now() + intervalMs;
+    resetAutoScrollTimer();
+
+    const cards = Array.from(track.querySelectorAll('.landing-horizontal-card')) as HTMLElement[];
+    if (cards.length === 0) return;
+
+    const maxScroll = track.scrollWidth - track.clientWidth;
+    let closestIndex = 0;
+
+    if (track.scrollLeft <= 4) {
+      closestIndex = 0;
+    } else if (track.scrollLeft >= maxScroll - 4) {
+      closestIndex = cards.length - 1;
+    } else {
+      const trackRect = track.getBoundingClientRect();
+      const paddingLeft = parseFloat(window.getComputedStyle(track).paddingLeft || '0') || 0;
+      let minDist = Infinity;
+      cards.forEach((card, idx) => {
+        const dist = Math.abs(card.getBoundingClientRect().left - trackRect.left - paddingLeft);
+        if (dist < minDist) {
+          minDist = dist;
+          closestIndex = idx;
+        }
+      });
+    }
+
+    if (closestIndex !== activeIndexRef.current) {
+      activeIndexRef.current = closestIndex;
+      setActiveIndex(closestIndex);
+    }
+  }, [intervalMs, resetAutoScrollTimer]);
+
+  const handlePauseStart = useCallback(() => {
+    isPausedRef.current = true;
+  }, []);
+
+  const handlePauseEnd = useCallback(() => {
+    isPausedRef.current = false;
+    pauseUntilRef.current = Date.now() + intervalMs;
+    resetAutoScrollTimer();
+  }, [intervalMs, resetAutoScrollTimer]);
+
+  useEffect(() => {
+    resetAutoScrollTimer();
+    return () => {
+      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
+      if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
+    };
+  }, [resetAutoScrollTimer]);
+
+  return {
+    trackRef,
+    activeIndex,
+    scrollToIndex,
+    handleScroll,
+    handlePauseStart,
+    handlePauseEnd,
+  };
+}
+
 export default function LandingPage({ onStart }: LandingPageProps) {
   const { language, setLanguage, t, theme, toggleTheme } = useThemeLanguage();
   const darkMode = theme === 'dark';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('beranda');
+  const featuresCarousel = useLandingCarousel(3, 4000);
+  const benefitsCarousel = useLandingCarousel(3, 4000);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -378,12 +529,17 @@ export default function LandingPage({ onStart }: LandingPageProps) {
         <p style={{ color: darkMode ? '#cbd5e1' : '#475569', fontSize: '18px', marginBottom: '48px', maxWidth: '700px' }}>
           {language === 'id' ? 'Fitur-fitur andalan yang didesain intuitif dan friendly untuk mengubah kebiasaan buruk finansialmu.' : 'Core features designed intuitively and friendly to transform your financial habits.'}
         </p>
-        <div className="landing-swipe-hint md:hidden w-full max-w-[1200px] mb-3" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
-          <span>{language === 'id' ? 'Geser untuk melihat fitur lainnya' : 'Swipe to see more features'}</span>
-          <span aria-hidden="true">→</span>
-        </div>
-        
-        <div className="landing-horizontal-track landing-features-track" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '1200px', width: '100%', marginBottom: '48px' }}>
+        <div
+          ref={featuresCarousel.trackRef}
+          onScroll={featuresCarousel.handleScroll}
+          onTouchStart={featuresCarousel.handlePauseStart}
+          onTouchEnd={featuresCarousel.handlePauseEnd}
+          onTouchCancel={featuresCarousel.handlePauseEnd}
+          onMouseEnter={featuresCarousel.handlePauseStart}
+          onMouseLeave={featuresCarousel.handlePauseEnd}
+          className="landing-horizontal-track landing-features-track"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '1200px', width: '100%', marginBottom: '48px' }}
+        >
           {[
             { 
               icon: '🧠', 
@@ -412,6 +568,37 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </div>
           ))}
         </div>
+
+        <div
+          className="flex md:hidden items-center justify-center gap-2 mt-1 mb-6"
+          role="tablist"
+          aria-label={language === 'id' ? 'Navigasi fitur unggulan' : 'Core features navigation'}
+        >
+          {[0, 1, 2].map((dotIndex) => {
+            const isActive = featuresCarousel.activeIndex === dotIndex;
+            return (
+              <button
+                key={dotIndex}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-label={language === 'id' ? `Fitur ${dotIndex + 1}` : `Feature ${dotIndex + 1}`}
+                onClick={() => featuresCarousel.scrollToIndex(dotIndex, true)}
+                className="p-1.5 bg-transparent border-0 cursor-pointer flex items-center justify-center focus:outline-none"
+              >
+                <span
+                  className="block h-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: isActive ? '26px' : '10px',
+                    backgroundColor: isActive
+                      ? (darkMode ? '#38bdf8' : '#112f58')
+                      : (darkMode ? 'rgba(148, 163, 184, 0.35)' : 'rgba(17, 47, 88, 0.22)'),
+                  }}
+                />
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* --- SEKSI MANFAAT (BENEFITS) --- */}
@@ -429,12 +616,16 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </p>
           </div>
 
-          <div className="landing-swipe-hint md:hidden w-full mb-3 text-slate-500 dark:text-slate-400">
-            <span>{t('Geser untuk melihat manfaat lainnya', 'Swipe to see more benefits')}</span>
-            <span aria-hidden="true">→</span>
-          </div>
-
-          <div className="landing-horizontal-track landing-benefits-track grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div
+            ref={benefitsCarousel.trackRef}
+            onScroll={benefitsCarousel.handleScroll}
+            onTouchStart={benefitsCarousel.handlePauseStart}
+            onTouchEnd={benefitsCarousel.handlePauseEnd}
+            onTouchCancel={benefitsCarousel.handlePauseEnd}
+            onMouseEnter={benefitsCarousel.handlePauseStart}
+            onMouseLeave={benefitsCarousel.handlePauseEnd}
+            className="landing-horizontal-track landing-benefits-track grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
             {/* Manfaat 1 */}
             <div className="landing-horizontal-card bg-white dark:bg-slate-800/80 p-8 rounded-[24px] shadow-[0_15px_40px_-5px_rgba(17,47,88,0.08)] dark:shadow-none border border-slate-100/80 dark:border-slate-800 hover:shadow-[0_25px_50px_-10px_rgba(17,47,88,0.14)] dark:hover:border-slate-700 hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
@@ -482,6 +673,37 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                 )}
               </p>
             </div>
+          </div>
+
+          <div
+            className="flex md:hidden items-center justify-center gap-2 mt-1"
+            role="tablist"
+            aria-label={t('Navigasi manfaat MOODUIT', 'MOODUIT benefits navigation')}
+          >
+            {[0, 1, 2].map((dotIndex) => {
+              const isActive = benefitsCarousel.activeIndex === dotIndex;
+              return (
+                <button
+                  key={dotIndex}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={t(`Manfaat ${dotIndex + 1}`, `Benefit ${dotIndex + 1}`)}
+                  onClick={() => benefitsCarousel.scrollToIndex(dotIndex, true)}
+                  className="p-1.5 bg-transparent border-0 cursor-pointer flex items-center justify-center focus:outline-none"
+                >
+                  <span
+                    className="block h-2.5 rounded-full transition-all duration-300"
+                    style={{
+                      width: isActive ? '26px' : '10px',
+                      backgroundColor: isActive
+                        ? (darkMode ? '#38bdf8' : '#112f58')
+                        : (darkMode ? 'rgba(148, 163, 184, 0.35)' : 'rgba(17, 47, 88, 0.22)'),
+                    }}
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>

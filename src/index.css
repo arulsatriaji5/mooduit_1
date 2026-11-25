@@ -816,29 +816,15 @@ canvas {
   scroll-margin-top: 88px;
 }
 
-.landing-swipe-hint {
-  display: none;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
 @media (max-width: 767.98px) {
-  .landing-swipe-hint {
-    display: flex;
-  }
-
   .landing-horizontal-track {
     display: flex !important;
     width: 100%;
     max-width: 100% !important;
     grid-template-columns: none !important;
     gap: 1rem !important;
-    margin-bottom: 2rem !important;
-    padding: 0.25rem 0.125rem 1.25rem;
+    margin-bottom: 0.75rem !important;
+    padding: 0.25rem 0.125rem 0.75rem;
     overflow-x: auto;
     overflow-y: visible;
     overscroll-behavior-x: contain;
